@@ -14,10 +14,12 @@ import (
 	"time"
 )
 
+// TODO: Rename this file
 var (
 	failureDuration time.Duration
 	restoreFailure  bool
 	diskStallArgs   failures.DiskStallArgs
+	pageFaultArgs   failures.PageFaultArgs
 )
 
 func initFailureInjectionFlags(failureInjectionCmd *cobra.Command) {
@@ -29,6 +31,9 @@ func initFailureInjectionFlags(failureInjectionCmd *cobra.Command) {
 	failureInjectionCmd.PersistentFlags().BoolVar(&diskStallArgs.StallReads, "stall-reads", false, "Stall reads")
 	failureInjectionCmd.PersistentFlags().BoolVar(&diskStallArgs.StallLogs, "stall-logs", false, "Stall logs")
 	failureInjectionCmd.PersistentFlags().IntVar(&diskStallArgs.Throughput, "throughput", 4, "Bytes per second to slow disk I/O to")
+
+	// Page Fault Args
+	failureInjectionCmd.PersistentFlags().IntVar(&pageFaultArgs.Workers, "workers", 0, "Number of threads to use create page faults")
 }
 
 func (cr *commandRegistry) FailureInjectionCommand() *cobra.Command {
@@ -126,7 +131,7 @@ partition nodes 1 and 3 from nodes 2 and 4.
 // further attempts to stabilize it fail.
 func (cr *commandRegistry) buildDmsetupDiskStall() *cobra.Command {
 	return &cobra.Command{
-		Use:   fmt.Sprintf("%s <cluster> [--flags]", failures.DmsetupDiskStallName),
+		Use:   fmt.Sprintf("%s <cluster>", failures.DmsetupDiskStallName),
 		Short: "use dmsetup to create disk stalls",
 		Long: `Use dmsetup to create disk stalls. By default, only writes are stalled.
 
@@ -157,7 +162,7 @@ func (cr *commandRegistry) buildDmsetupDiskStall() *cobra.Command {
 
 func (cr *commandRegistry) buildCgroupDiskStall() *cobra.Command {
 	return &cobra.Command{
-		Use:   fmt.Sprintf("%s <cluster> [--flags]", failures.CgroupDiskStallName),
+		Use:   fmt.Sprintf("%s <cluster>", failures.CgroupDiskStallName),
 		Short: "use cgroups v2 to create disk stalls",
 		Long: `Use cgroups v2 to create disk stalls. By default, only writes are stalled.
 
@@ -182,6 +187,26 @@ func (cr *commandRegistry) buildCgroupDiskStall() *cobra.Command {
 				StallLogs:   diskStallArgs.StallLogs,
 				Throughput:  diskStallArgs.Throughput,
 			})
+		}),
+	}
+}
+
+func (cr *commandRegistry) buildPageFault() *cobra.Command {
+	return &cobra.Command{
+		Use:   fmt.Sprintf("%s <cluster>", failures.PageFaultName),
+		Short: "use stress-ng to create major page faults",
+		Long: `use stress-ng to create major page faults.
+
+--workers: number of threads creating page faults, default of 0 creates 1 per core.
+`,
+		Args: cobra.ExactArgs(1),
+		Run: wrap(func(cmd *cobra.Command, args []string) (retErr error) {
+			ctx := context.Background()
+			staller, err := cr.failureRegistry.GetFailure(args[0], failures.PageFaultName, config.Logger, isSecure)
+			if err != nil {
+				return err
+			}
+			return runFailure(ctx, staller, pageFaultArgs)
 		}),
 	}
 }

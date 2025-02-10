@@ -77,5 +77,6 @@ func (cr *commandRegistry) register() {
 		cr.buildIptablesPartitionNode(),
 		cr.buildDmsetupDiskStall(),
 		cr.buildCgroupDiskStall(),
+		cr.buildPageFault(),
 	})
 }

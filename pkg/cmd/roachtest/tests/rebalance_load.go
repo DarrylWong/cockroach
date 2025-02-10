@@ -333,7 +333,7 @@ func makeStoreCPUFn(
 	return func(ctx context.Context) ([]float64, error) {
 		now := timeutil.Now()
 		resp, err := getMetricsWithSamplePeriod(
-			ctx, c, t, url, install.SystemInterfaceName, startTime, now, statSamplePeriod, tsQueries)
+			ctx, c, l, url, install.SystemInterfaceName, startTime, now, statSamplePeriod, tsQueries)
 		if err != nil {
 			return nil, err
 		}

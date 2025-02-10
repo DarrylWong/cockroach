@@ -7,6 +7,7 @@ package tests
 
 import (
 	"context"
+	"github.com/cockroachdb/cockroach/pkg/roachprod/logger"
 	"time"
 
 	"github.com/cockroachdb/cockroach/pkg/cmd/roachtest/cluster"
@@ -57,7 +58,7 @@ func mustGetMetrics(
 	start, end time.Time,
 	tsQueries []tsQuery,
 ) tspb.TimeSeriesQueryResponse {
-	response, err := getMetrics(ctx, c, t, adminURL, virtualCluster, start, end, tsQueries)
+	response, err := getMetrics(ctx, c, t.L(), adminURL, virtualCluster, start, end, tsQueries)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,13 +68,13 @@ func mustGetMetrics(
 func getMetrics(
 	ctx context.Context,
 	c cluster.Cluster,
-	t test.Test,
+	l *logger.Logger,
 	adminURL string,
 	virtualCluster string,
 	start, end time.Time,
 	tsQueries []tsQuery,
 ) (tspb.TimeSeriesQueryResponse, error) {
-	return getMetricsWithSamplePeriod(ctx, c, t, adminURL, virtualCluster, start, end, defaultSamplePeriod, tsQueries)
+	return getMetricsWithSamplePeriod(ctx, c, l, adminURL, virtualCluster, start, end, defaultSamplePeriod, tsQueries)
 }
 
 // sumCounterIncreases sums the increase in consecutive data points in the
@@ -99,7 +100,7 @@ func sumCounterIncreases(dataPoints []tspb.TimeSeriesDatapoint) (sum float64) {
 func getMetricsWithSamplePeriod(
 	ctx context.Context,
 	c cluster.Cluster,
-	t test.Test,
+	l *logger.Logger,
 	adminURL string,
 	virtualCluster string,
 	start, end time.Time,
@@ -142,7 +143,7 @@ func getMetricsWithSamplePeriod(
 	}
 	var response tspb.TimeSeriesQueryResponse
 	client := roachtestutil.DefaultHTTPClient(
-		c, t.L(), roachtestutil.HTTPTimeout(5*time.Second),
+		c, l, roachtestutil.HTTPTimeout(5*time.Second),
 		roachtestutil.VirtualCluster(virtualCluster),
 	)
 	err := client.PostProtobuf(ctx, url, &request, &response)

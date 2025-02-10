@@ -5,7 +5,7 @@ go_library(
     srcs = [
         "bash_completion.go",
         "commands.go",
-        "failureinjection.go",
+        "failure_injection.go",
         "flags.go",
         "handlers.go",
         "resgistry.go",

@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/cockroachdb/cockroach/pkg/cmd/roachtest/roachtestutil/failureinjection"
+	"github.com/cockroachdb/cockroach/pkg/roachprod/logger"
 	"io/fs"
 	"os"
 	"path/filepath"

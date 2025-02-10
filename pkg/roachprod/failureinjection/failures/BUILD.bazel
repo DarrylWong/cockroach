@@ -3,6 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "failures",
     srcs = [
+        "cpu_stress.go",
         "disk_stall.go",
         "failure.go",
         "network_partition.go",

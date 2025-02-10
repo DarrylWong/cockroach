@@ -24,6 +24,7 @@ func (r *FailureRegistry) Register() {
 	registerCgroupDiskStall(r)
 	registerDmsetupDiskStall(r)
 	registerIPTablesPartitionNode(r)
+	registerPageFault(r)
 }
 
 func (r *FailureRegistry) add(failureName string, args FailureArgs, makeFailureFunc func(clusterName string, l *logger.Logger, secure bool) (FailureMode, error)) {
