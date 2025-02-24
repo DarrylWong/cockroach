@@ -629,6 +629,13 @@ type nodeSelector interface {
 	Merge(option.NodeListOption) option.NodeListOption
 }
 
+// testHookType represents when a ClusterHook should be run.
+type testHookType int
+
+const (
+	preStartHook testHookType = iota
+)
+
 // clusterImpl implements cluster.Cluster.
 
 // It is safe for concurrent use by multiple goroutines.
@@ -684,6 +691,10 @@ type clusterImpl struct {
 	// sideEyeClient, if set, is the client used to communicate with the Side-Eye
 	// debugging service.
 	sideEyeClient *sideeyeclient.SideEyeClient
+
+	// preStartHooks are run after service registration occurs in StartE but before
+	// the cluster is actually started.
+	preStartHooks []install.ClusterHook
 
 	// State that can be accessed concurrently (in particular, read from the UI
 	// HTML generator).
@@ -2179,6 +2190,7 @@ func (c *clusterImpl) StartE(
 
 	clusterSettingsOpts := c.configureClusterSettingOptions(c.clusterSettings, settings)
 
+	startOpts.RoachprodOpts.PreStartHooks = append(startOpts.RoachprodOpts.PreStartHooks, c.preStartHooks...)
 	nodes := selectedNodesOrDefault(opts, c.CRDBNodes())
 	if err := roachprod.Start(ctx, l, c.MakeNodes(nodes), startOpts.RoachprodOpts, clusterSettingsOpts...); err != nil {
 		return err
@@ -3356,4 +3368,13 @@ func (c *clusterImpl) GetHostErrorVMs(ctx context.Context, l *logger.Logger) ([]
 		allHostErrorVMs = append(allHostErrorVMs, hostErrorVMS...)
 	}
 	return allHostErrorVMs, nil
+}
+
+func (c *clusterImpl) RegisterTestHook(hookName string, hookType testHookType, fn func(context.Context) error) {
+	switch hookType {
+	case preStartHook:
+		c.preStartHooks = append(c.preStartHooks, install.ClusterHook{Name: hookName, Fn: fn})
+	default:
+		panic(fmt.Sprintf("unknown test hook type %v", hookType))
+	}
 }

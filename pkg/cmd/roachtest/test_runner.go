@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/cockroachdb/cockroach/pkg/cmd/roachtest/roachtestutil/failureinjection"
 	"html"
 	"io"
 	"math/rand"
@@ -939,6 +940,23 @@ func (r *testRunner) runWorker(
 				}
 				c.status(fmt.Sprintf("metamorphically using buffered sender: %t", useBufferedSender))
 				t.AddParam("metamorphicBufferedSender", fmt.Sprint(useBufferedSender))
+
+				switch testSpec.ArtificialLatency {
+				case registry.NoLatency:
+				case registry.MetamorphicLatency:
+					// TODO: handle this case
+					fallthrough
+				case registry.GeoDistributedLatency:
+					c.RegisterTestHook("simulate geo distributed cluster", preStartHook, func(ctx context.Context) error {
+						latencyInjector, err := failureinjection.MakeArtificialLatencyInjector(c, t.L())
+						if err != nil {
+							return err
+						}
+						return latencyInjector.CreateDefaultMultiRegionCluster(ctx)
+					})
+					t.AddParam("artificialLatency", testSpec.ArtificialLatency.String())
+				}
+
 				c.goCoverDir = t.GoCoverArtifactsDir()
 				wStatus.SetTest(t, testToRun)
 				wStatus.SetStatus("running test")
