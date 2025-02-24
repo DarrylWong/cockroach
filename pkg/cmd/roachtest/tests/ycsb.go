@@ -9,6 +9,7 @@ import (
 	"context"
 	gosql "database/sql"
 	"fmt"
+	"github.com/cockroachdb/cockroach/pkg/cmd/roachtest/roachtestutil/failureinjection"
 
 	"github.com/cockroachdb/cockroach/pkg/cmd/roachtest/cluster"
 	"github.com/cockroachdb/cockroach/pkg/cmd/roachtest/option"
@@ -66,9 +67,17 @@ func registerYCSB(r registry.Registry) {
 		}
 
 		c.Start(ctx, t.L(), option.NewStartOpts(option.NoBackupSchedule), settings, c.CRDBNodes())
+		latencyInjector, err := failureinjection.MakeArtificialLatencyInjector(c, t.L())
+		require.NoError(t, err)
+		restoreFunc, err := latencyInjector.CreateDefaultMultiRegionCluster(ctx)
+		require.NoError(t, err)
+		defer func() {
+			err = restoreFunc()
+			require.NoError(t, err)
+		}()
 
 		db := c.Conn(ctx, t.L(), 1)
-		err := enableIsolationLevels(ctx, t, db)
+		err = enableIsolationLevels(ctx, t, db)
 		require.NoError(t, err)
 		err = roachtestutil.WaitFor3XReplication(ctx, t.L(), db)
 		require.NoError(t, err)
