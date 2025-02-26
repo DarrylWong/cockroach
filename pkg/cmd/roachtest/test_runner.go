@@ -944,7 +944,10 @@ func (r *testRunner) runWorker(
 				switch testSpec.ArtificialLatency {
 				case registry.NoLatency:
 				case registry.MetamorphicLatency:
-					// TODO: handle this case
+					useGeo := prng.Intn(2) == 0
+					if !useGeo {
+						break
+					}
 					fallthrough
 				case registry.GeoDistributedLatency:
 					latencyInjector, err := failureinjection.MakeArtificialLatencyInjector(c, t.L())
